@@ -107,14 +107,30 @@ npm run build
 ## 项目结构
 ObHtables/
 ├── src/
-│   ├── HtmlTableEditor.ts    # 核心表格编辑器
-│   └── HtmlTableModal.ts     # 表格编辑模态框
-├── main.ts                   # 插件主文件
-├── manifest.json            # 插件清单
-├── package.json             # 项目配置
-├── styles.css               # 样式文件
-├── tsconfig.json            # TypeScript 配置
-└── README.md                # 项目说明
+│   ├── core/
+│   │   ├── HtmlTableEditor.ts          # 主编辑器类（简化）
+│   │   ├── TableData.ts                # 表格数据管理
+│   │   └── TableRenderer.ts            # 表格渲染逻辑
+│   ├── features/
+│   │   ├── CellSelection.ts            # 单元格选择功能
+│   │   ├── CellMerging.ts              # 单元格合并/拆分
+│   │   ├── TableSorting.ts             # 表格排序功能
+│   │   ├── RowColumnOperations.ts      # 行列操作（增删改）
+│   │   └── ClipboardOperations.ts      # 复制粘贴功能
+│   ├── ui/
+│   │   ├── ControlPanel.ts             # 控制面板
+│   │   ├── ContextMenu.ts              # 右键菜单
+│   │   └── SortDialog.ts               # 排序对话框
+│   ├── utils/
+│   │   ├── TableParser.ts              # HTML表格解析
+│   │   ├── TableValidator.ts           # 表格数据验证
+│   │   └── EventHandlers.ts            # 事件处理工具
+│   ├── types/
+│   │   └── index.ts                    # 类型定义
+│   ├── HtmlTableModal.ts               # 保持不变
+│   └── index.ts                        # 导出入口
+├── styles.css
+└── main.ts
 
 
 ## 开发计划
