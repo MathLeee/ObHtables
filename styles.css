@@ -1,0 +1,305 @@
+/* ObHtables Plugin Styles */
+
+.html-table-editor-container {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.table-control-panel {
+  margin-bottom: 15px;
+  padding: 15px;
+  background: var(--background-secondary);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.control-label {
+  font-weight: bold;
+  color: var(--text-muted);
+  min-width: 80px;
+}
+
+.table-control-panel button {
+  padding: 6px 12px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--interactive-normal);
+  color: var(--text-normal);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.table-control-panel button:hover {
+  background: var(--interactive-hover);
+  transform: translateY(-1px);
+}
+
+.table-control-panel button:active {
+  transform: translateY(0);
+}
+
+.table-editor {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 5px;
+  overflow: auto;
+  max-height: 500px;
+  position: relative;
+}
+
+.html-table-preview {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.html-table-preview th,
+.html-table-preview td {
+  border: 1px solid var(--background-modifier-border);
+  padding: 0;
+  position: relative;
+  min-width: 80px;
+  height: 40px;
+}
+
+.html-table-preview th {
+  background: var(--background-secondary);
+  font-weight: bold;
+}
+
+.html-table-preview td.selected,
+.html-table-preview th.selected {
+  background: var(--interactive-accent) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.html-table-preview td.selected input,
+.html-table-preview th.selected input {
+  background: transparent !important;
+  color: var(--text-on-accent) !important;
+}
+
+.html-table-preview input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  color: var(--text-normal);
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+.html-table-preview input:focus {
+  background: var(--background-primary);
+  box-shadow: inset 0 0 0 2px var(--interactive-accent);
+}
+
+.html-table-preview td:hover,
+.html-table-preview th:hover {
+  background: var(--background-modifier-hover);
+  cursor: pointer;
+}
+
+/* 右键菜单样式增强 */
+.table-context-menu {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 6px 0;
+  min-width: 200px;
+  max-width: 300px;
+  z-index: 1000;
+  font-size: 13px;
+}
+
+.table-context-menu .menu-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: var(--text-normal);
+  transition: background-color 0.1s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-context-menu .menu-item:hover:not(.disabled) {
+  background: var(--background-modifier-hover);
+}
+
+.table-context-menu .menu-item.disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.table-context-menu .menu-item.danger {
+  color: var(--text-error);
+}
+
+.table-context-menu .menu-item.danger:hover:not(.disabled) {
+  background: var(--background-modifier-error-hover);
+}
+
+.table-context-menu .menu-icon {
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.table-context-menu hr {
+  margin: 6px 0;
+  border: none;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 菜单动画 */
+.table-context-menu {
+  animation: menuFadeIn 0.15s ease-out;
+}
+
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.modal-button-container button {
+  padding: 8px 16px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--interactive-normal);
+  color: var(--text-normal);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-button-container button:hover {
+  background: var(--interactive-hover);
+}
+
+.modal-button-container button.mod-cta {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+/* Enhanced HTML tables in preview */
+.ob-htables-enhanced {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+  border-collapse: collapse;
+}
+
+.ob-htables-enhanced:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ob-htables-enhanced td,
+.ob-htables-enhanced th {
+  border: 1px solid var(--background-modifier-border);
+  padding: 8px 12px;
+}
+
+.ob-htables-enhanced th {
+  background: var(--background-secondary);
+  font-weight: bold;
+}
+
+/* Table themes */
+.ob-htables-enhanced.theme-minimal {
+  border: none;
+}
+
+.ob-htables-enhanced.theme-minimal th,
+.ob-htables-enhanced.theme-minimal td {
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ob-htables-enhanced.theme-bordered {
+  border: 2px solid var(--background-modifier-border);
+}
+
+.ob-htables-enhanced.theme-bordered th,
+.ob-htables-enhanced.theme-bordered td {
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ob-htables-enhanced.theme-striped tr:nth-child(even) {
+  background: var(--background-secondary-alt);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .table-control-panel {
+    padding: 10px;
+  }
+  
+  .control-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .control-label {
+    min-width: auto;
+    margin-bottom: 5px;
+  }
+  
+  .table-control-panel button {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+  
+  .html-table-preview th,
+  .html-table-preview td {
+    min-width: 60px;
+    height: 35px;
+  }
+}
+
+/* 加载动画 */
+.table-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: var(--text-muted);
+}
+
+.table-loading::after {
+  content: "加载中...";
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
