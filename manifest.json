@@ -1,11 +1,11 @@
 {
-  "id": "ob-htables",
+  "id": "obhtables",
   "name": "ObHtables",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "Edit HTML tables directly in Obsidian with a visual editor",
-  "author": "Your Name",
-  "authorUrl": "https://github.com/yourusername",
-  "fundingUrl": "https://buymeacoffee.com/yourusername",
+  "description": "Edit HTML tables directly with a visual editor",
+  "author": "MathLeee",
+  "authorUrl": "https://github.com/MathLeee",
+  "fundingUrl": "https://buymeacoffee.com/mathleee",
   "isDesktopOnly": false
 }
