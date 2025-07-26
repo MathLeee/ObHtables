@@ -10,6 +10,19 @@ interface SelectedCell {
   col: number;
 }
 
+// 排序类型枚举
+enum SortType {
+  TEXT = 'text',
+  NUMBER = 'number',
+  DATE = 'date'
+}
+
+// 排序方向枚举
+enum SortDirection {
+  ASC = 'asc',
+  DESC = 'desc'
+}
+
 export class HtmlTableEditor {
   private container: HTMLElement;
   private settings: any;
@@ -270,6 +283,19 @@ export class HtmlTableEditor {
     const clearSelectionBtn = mergeOpsDiv.createEl('button', { text: '清除选择' });
     clearSelectionBtn.addEventListener('click', () => this.clearSelection());
 
+    // 新增：排序操作按钮
+    const sortOpsDiv = controlPanel.createDiv({ cls: 'control-group' });
+    sortOpsDiv.createEl('span', { text: '排序操作:', cls: 'control-label' });
+    
+    const sortAscBtn = sortOpsDiv.createEl('button', { text: '升序排序' });
+    sortAscBtn.addEventListener('click', () => this.showSortDialog(SortDirection.ASC));
+
+    const sortDescBtn = sortOpsDiv.createEl('button', { text: '降序排序' });
+    sortDescBtn.addEventListener('click', () => this.showSortDialog(SortDirection.DESC));
+
+    const resetSortBtn = sortOpsDiv.createEl('button', { text: '重置排序' });
+    resetSortBtn.addEventListener('click', () => this.resetSort());
+
     // 表头切换
     const headerDiv = controlPanel.createDiv({ cls: 'control-group' });
     const headerToggle = headerDiv.createEl('label');
@@ -393,48 +419,123 @@ export class HtmlTableEditor {
     menu.style.top = e.clientY + 'px';
     menu.style.zIndex = '1000';
     
-    // 根据右键位置智能显示插入选项
+    // 优化后的菜单结构 - 分组显示
     const menuItems = [
-      // 插入行选项
+      // 基础编辑操作
       { 
-        text: `在第${row + 1}行上方插入行`, 
-        action: () => this.insertRowAt(row),
-        icon: '⬆️'
-      },
-      { 
-        text: `在第${row + 1}行下方插入行`, 
-        action: () => this.insertRowAt(row + 1),
-        icon: '⬇️'
-      },
-      { text: '---', action: null },
-      
-      // 插入列选项
-      { 
-        text: `在第${col + 1}列左侧插入列`, 
-        action: () => this.insertColumnAt(col),
-        icon: '⬅️'
-      },
-      { 
-        text: `在第${col + 1}列右侧插入列`, 
-        action: () => this.insertColumnAt(col + 1),
-        icon: '➡️'
-      },
-      { text: '---', action: null },
-      
-      // 批量插入选项
-      { 
-        text: '批量插入行...', 
-        action: () => this.showBatchInsertDialog('row', row),
+        text: '复制', 
+        action: () => this.copyCells(),
         icon: '📋'
       },
       { 
-        text: '批量插入列...', 
-        action: () => this.showBatchInsertDialog('column', col),
-        icon: '📋'
+        text: '粘贴', 
+        action: () => this.pasteCells(row, col),
+        icon: '📋',
+        disabled: !this.clipboardData
+      },
+      { 
+        text: '清空内容', 
+        action: () => this.clearCellContent(),
+        icon: '🧹'
       },
       { text: '---', action: null },
       
-      // 删除选项
+      // 插入操作 - 子菜单
+      {
+        text: '插入...',
+        icon: '➕',
+        submenu: [
+          { 
+            text: `在上方插入行`, 
+            action: () => this.insertRowAt(row),
+            icon: '⬆️'
+          },
+          { 
+            text: `在下方插入行`, 
+            action: () => this.insertRowAt(row + 1),
+            icon: '⬇️'
+          },
+          { 
+            text: `在左侧插入列`, 
+            action: () => this.insertColumnAt(col),
+            icon: '⬅️'
+          },
+          { 
+            text: `在右侧插入列`, 
+            action: () => this.insertColumnAt(col + 1),
+            icon: '➡️'
+          },
+          { text: '---', action: null },
+          { 
+            text: '批量插入行...', 
+            action: () => this.showBatchInsertDialog('row', row),
+            icon: '📋'
+          },
+          { 
+            text: '批量插入列...', 
+            action: () => this.showBatchInsertDialog('column', col),
+            icon: '📋'
+          }
+        ]
+      },
+      
+      // 排序操作 - 子菜单
+      {
+        text: '排序...',
+        icon: '🔄',
+        submenu: [
+          { 
+            text: `文本升序`, 
+            action: () => this.sortByColumn(col, SortDirection.ASC, SortType.TEXT),
+            icon: '🔼'
+          },
+          { 
+            text: `文本降序`, 
+            action: () => this.sortByColumn(col, SortDirection.DESC, SortType.TEXT),
+            icon: '🔽'
+          },
+          { text: '---', action: null },
+          { 
+            text: `数字升序`, 
+            action: () => this.sortByColumn(col, SortDirection.ASC, SortType.NUMBER),
+            icon: '🔢'
+          },
+          { 
+            text: `数字降序`, 
+            action: () => this.sortByColumn(col, SortDirection.DESC, SortType.NUMBER),
+            icon: '🔢'
+          },
+          { text: '---', action: null },
+          { 
+            text: `日期升序`, 
+            action: () => this.sortByColumn(col, SortDirection.ASC, SortType.DATE),
+            icon: '📅'
+          },
+          { 
+            text: `日期降序`, 
+            action: () => this.sortByColumn(col, SortDirection.DESC, SortType.DATE),
+            icon: '📅'
+          }
+        ]
+      },
+      
+      // 合并拆分操作
+      { 
+        text: '合并单元格', 
+        action: () => this.mergeCells(),
+        icon: '🔗',
+        disabled: this.selectedCells.length < 2
+      },
+      { 
+        text: '拆分单元格', 
+        action: () => this.splitCells(),
+        icon: '✂️',
+        disabled: this.selectedCells.length !== 1 || 
+                  (this.tableData[row][col].colspan === 1 && this.tableData[row][col].rowspan === 1)
+      },
+      { text: '---', action: null },
+      
+      // 删除操作
       { 
         text: `删除第${row + 1}行`, 
         action: () => this.deleteRowAt(row),
@@ -449,42 +550,7 @@ export class HtmlTableEditor {
       },
       { text: '---', action: null },
       
-      // 合并拆分选项
-      { 
-        text: '合并选中单元格', 
-        action: () => this.mergeCells(),
-        icon: '🔗',
-        disabled: this.selectedCells.length < 2
-      },
-      { 
-        text: '拆分单元格', 
-        action: () => this.splitCells(),
-        icon: '✂️',
-        disabled: this.selectedCells.length !== 1 || 
-                  (this.tableData[row][col].colspan === 1 && this.tableData[row][col].rowspan === 1)
-      },
-      { text: '---', action: null },
-      
-      // 复制粘贴选项
-      { 
-        text: '复制单元格', 
-        action: () => this.copyCells(),
-        icon: '📋'
-      },
-      { 
-        text: '粘贴', 
-        action: () => this.pasteCells(row, col),
-        icon: '📋',
-        disabled: !this.clipboardData
-      },
-      { text: '---', action: null },
-      
       // 格式选项
-      { 
-        text: '清空内容', 
-        action: () => this.clearCellContent(),
-        icon: '🧹'
-      },
       { 
         text: '设为表头', 
         action: () => this.toggleCellHeader(row),
@@ -493,11 +559,98 @@ export class HtmlTableEditor {
       }
     ];
     
-    menuItems.forEach(item => {
+    this.createMenuItems(menu, menuItems, e);
+    
+    document.body.appendChild(menu);
+    this.contextMenu = menu;
+    
+    // 调整菜单位置，确保不超出屏幕
+    this.adjustMenuPosition(menu, e);
+    
+    // 点击其他地方隐藏菜单
+    setTimeout(() => {
+      document.addEventListener('click', () => this.hideContextMenu(), { once: true });
+    }, 0);
+  }
+
+  // 新增：创建菜单项的辅助方法
+  private createMenuItems(container: HTMLElement, items: any[], event: MouseEvent) {
+    items.forEach(item => {
       if (item.text === '---') {
-        menu.createEl('hr');
+        container.createEl('hr');
+      } else if (item.submenu) {
+        // 创建带子菜单的项
+        const menuItem = container.createEl('div', { 
+          text: item.text, 
+          cls: `menu-item submenu-item ${item.className || ''}` 
+        });
+        
+        // 添加图标
+        if (item.icon) {
+          const icon = menuItem.createSpan({ text: item.icon, cls: 'menu-icon' });
+          menuItem.insertBefore(icon, menuItem.firstChild);
+        }
+        
+        // 添加箭头指示器
+        const arrow = menuItem.createSpan({ text: '▶', cls: 'submenu-arrow' });
+        
+        // 子菜单容器
+        const submenu = document.createElement('div');
+        submenu.className = 'table-submenu';
+        submenu.style.display = 'none';
+        
+        this.createMenuItems(submenu, item.submenu, event);
+        
+        // 将子菜单添加到父菜单项中
+        menuItem.appendChild(submenu);
+        
+        // 修复的鼠标事件处理
+        let showTimeout: NodeJS.Timeout;
+        let hideTimeout: NodeJS.Timeout;
+        
+        const showSubmenu = () => {
+          clearTimeout(hideTimeout);
+          clearTimeout(showTimeout);
+          
+          // 隐藏其他子菜单
+          container.querySelectorAll('.table-submenu').forEach(sub => {
+            if (sub !== submenu) {
+              (sub as HTMLElement).style.display = 'none';
+            }
+          });
+          
+          submenu.style.display = 'block';
+          this.adjustSubmenuPosition(submenu, menuItem);
+        };
+        
+        const hideSubmenu = () => {
+          clearTimeout(showTimeout);
+          clearTimeout(hideTimeout);
+          hideTimeout = setTimeout(() => {
+            submenu.style.display = 'none';
+          }, 150);
+        };
+        
+        const keepSubmenu = () => {
+          clearTimeout(hideTimeout);
+        };
+        
+        // 父菜单项事件
+        menuItem.addEventListener('mouseenter', showSubmenu);
+        menuItem.addEventListener('mouseleave', hideSubmenu);
+        
+        // 子菜单事件
+        submenu.addEventListener('mouseenter', keepSubmenu);
+        submenu.addEventListener('mouseleave', hideSubmenu);
+        
+        // 防止子菜单区域的点击事件冒泡
+        submenu.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+        
       } else {
-        const menuItem = menu.createEl('div', { 
+        // 普通菜单项
+        const menuItem = container.createEl('div', { 
           text: item.text, 
           cls: `menu-item ${item.className || ''} ${item.disabled ? 'disabled' : ''}` 
         });
@@ -509,30 +662,80 @@ export class HtmlTableEditor {
         }
         
         if (item.action && !item.disabled) {
-          menuItem.addEventListener('click', () => {
+          menuItem.addEventListener('click', (e) => {
+            e.stopPropagation();
             item.action!();
             this.hideContextMenu();
           });
         }
       }
     });
-    
-    document.body.appendChild(menu);
-    this.contextMenu = menu;
-    
-    // 调整菜单位置，确保不超出屏幕
+  }
+
+  // 新增：调整菜单位置的方法
+  private adjustMenuPosition(menu: HTMLElement, event: MouseEvent) {
     const rect = menu.getBoundingClientRect();
-    if (rect.right > window.innerWidth) {
-      menu.style.left = (e.clientX - rect.width) + 'px';
-    }
-    if (rect.bottom > window.innerHeight) {
-      menu.style.top = (e.clientY - rect.height) + 'px';
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // 水平位置调整
+    if (rect.right > viewportWidth) {
+      menu.style.left = Math.max(0, event.clientX - rect.width) + 'px';
     }
     
-    // 点击其他地方隐藏菜单
-    setTimeout(() => {
-      document.addEventListener('click', () => this.hideContextMenu(), { once: true });
-    }, 0);
+    // 垂直位置调整
+    if (rect.bottom > viewportHeight) {
+      menu.style.top = Math.max(0, event.clientY - rect.height) + 'px';
+    }
+    
+    // 如果菜单仍然太高，启用滚动
+    const finalRect = menu.getBoundingClientRect();
+    if (finalRect.height > viewportHeight - 20) {
+      menu.style.maxHeight = (viewportHeight - 40) + 'px';
+      menu.style.overflowY = 'auto';
+      menu.style.top = '20px';
+    }
+  }
+
+  // 修复：调整子菜单位置的方法
+  private adjustSubmenuPosition(submenu: HTMLElement, parentItem: HTMLElement) {
+    const parentRect = parentItem.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // 重置位置
+    submenu.style.left = '';
+    submenu.style.right = '';
+    submenu.style.top = '';
+    submenu.style.bottom = '';
+    
+    // 默认在右侧显示
+    submenu.style.left = '100%';
+    submenu.style.top = '0px';
+    
+    // 强制重新计算布局
+    submenu.offsetHeight;
+    
+    const submenuRect = submenu.getBoundingClientRect();
+    
+    // 检查是否超出右边界
+    if (submenuRect.right > viewportWidth - 10) {
+      // 在左侧显示
+      submenu.style.left = '';
+      submenu.style.right = '100%';
+    }
+    
+    // 检查是否超出下边界
+    if (submenuRect.bottom > viewportHeight - 10) {
+      const offset = Math.min(0, viewportHeight - submenuRect.bottom - 20);
+      submenu.style.top = offset + 'px';
+    }
+    
+    // 检查是否超出上边界
+    const finalRect = submenu.getBoundingClientRect();
+    if (finalRect.top < 10) {
+      submenu.style.top = (10 - parentRect.top) + 'px';
+    }
   }
 
   private hideContextMenu() {
@@ -1059,5 +1262,131 @@ export class HtmlTableEditor {
       this.hasHeader = !this.hasHeader;
       this.updateTableEditor();
     }
+  }
+
+  // 新增：显示排序对话框
+  private showSortDialog(direction: SortDirection) {
+    if (this.selectedCells.length === 0) {
+      alert('请先选择要排序的列');
+      return;
+    }
+    
+    // 获取选中的列
+    const selectedCols = [...new Set(this.selectedCells.map(cell => cell.col))];
+    
+    if (selectedCols.length !== 1) {
+      alert('请选择单一列进行排序');
+      return;
+    }
+    
+    const col = selectedCols[0];
+    
+    // 创建排序类型选择对话框
+    const sortTypes = [
+      { value: SortType.TEXT, label: '文本排序' },
+      { value: SortType.NUMBER, label: '数字排序' },
+      { value: SortType.DATE, label: '日期排序' }
+    ];
+    
+    const selectedType = prompt(
+      `选择排序类型：\n${sortTypes.map((type, index) => `${index + 1}. ${type.label}`).join('\n')}\n\n请输入数字 (1-3):`,
+      '1'
+    );
+    
+    if (selectedType) {
+      const typeIndex = parseInt(selectedType) - 1;
+      if (typeIndex >= 0 && typeIndex < sortTypes.length) {
+        this.sortByColumn(col, direction, sortTypes[typeIndex].value);
+      } else {
+        alert('无效的选择');
+      }
+    }
+  }
+
+  // 新增：按列排序
+  private sortByColumn(col: number, direction: SortDirection, type: SortType) {
+    if (this.tableData.length <= (this.hasHeader ? 1 : 0)) {
+      alert('没有足够的数据进行排序');
+      return;
+    }
+    
+    // 确定排序范围（如果有表头，跳过第一行）
+    const startRow = this.hasHeader ? 1 : 0;
+    const dataRows = this.tableData.slice(startRow);
+    
+    // 检查是否有合并单元格影响排序
+    const hasComplexMerge = dataRows.some(row => 
+      row[col] && (row[col].merged || row[col].colspan > 1 || row[col].rowspan > 1)
+    );
+    
+    if (hasComplexMerge) {
+      if (!confirm('检测到合并单元格，排序可能会影响表格结构。是否继续？')) {
+        return;
+      }
+    }
+    
+    // 创建排序索引数组
+    const sortIndices = dataRows.map((row, index) => ({
+      index,
+      value: row[col] ? row[col].content : '',
+      originalRow: row
+    }));
+    
+    // 根据类型进行排序
+    sortIndices.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (type) {
+        case SortType.NUMBER:
+          const numA = parseFloat(a.value) || 0;
+          const numB = parseFloat(b.value) || 0;
+          comparison = numA - numB;
+          break;
+          
+        case SortType.DATE:
+          const dateA = new Date(a.value).getTime() || 0;
+          const dateB = new Date(b.value).getTime() || 0;
+          comparison = dateA - dateB;
+          break;
+          
+        case SortType.TEXT:
+        default:
+          comparison = a.value.localeCompare(b.value, 'zh-CN', { 
+            numeric: true, 
+            sensitivity: 'base' 
+          });
+          break;
+      }
+      
+      return direction === SortDirection.ASC ? comparison : -comparison;
+    });
+    
+    // 重新排列数据
+    const sortedRows = sortIndices.map(item => item.originalRow);
+    
+    // 更新表格数据
+    if (this.hasHeader) {
+      this.tableData = [this.tableData[0], ...sortedRows];
+    } else {
+      this.tableData = sortedRows;
+    }
+    
+    this.clearSelection();
+    this.updateTableEditor();
+    
+    const typeLabel = type === SortType.NUMBER ? '数字' : type === SortType.DATE ? '日期' : '文本';
+    const directionLabel = direction === SortDirection.ASC ? '升序' : '降序';
+    alert(`已按第${col + 1}列进行${typeLabel}${directionLabel}排序`);
+  }
+
+  // 新增：重置排序（恢复原始顺序）
+  private resetSort() {
+    if (!confirm('确定要重置表格排序吗？这将无法撤销。')) {
+      return;
+    }
+    
+    // 这里可以实现更复杂的原始顺序恢复逻辑
+    // 目前简单地提示用户
+    alert('排序重置功能需要在编辑过程中记录原始顺序。当前版本暂不支持，请使用撤销功能或重新加载表格。');
   }
 }

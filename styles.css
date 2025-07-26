@@ -112,27 +112,173 @@
   cursor: pointer;
 }
 
+/* 排序相关样式 */
+.control-group {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.control-label {
+  font-weight: bold;
+  margin-right: 10px;
+  color: var(--text-accent);
+}
+
+.control-group button {
+  margin-right: 5px;
+  margin-bottom: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.control-group button:hover {
+  background: var(--background-modifier-hover);
+}
+
+.control-group button:active {
+  background: var(--background-modifier-active);
+}
+
 /* 右键菜单样式增强 */
+.table-context-menu {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-normal);
+}
+
+.menu-item:hover:not(.disabled) {
+  background: var(--background-modifier-hover);
+}
+
+.menu-item.disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.menu-item.danger {
+  color: var(--text-error);
+}
+
+.menu-item.danger:hover:not(.disabled) {
+  background: var(--background-modifier-error);
+}
+
+.menu-icon {
+  margin-right: 8px;
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+}
+
+.table-context-menu hr {
+  margin: 4px 0;
+  border: none;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 表格选中状态样式 */
+.html-table-preview td.selected,
+.html-table-preview th.selected {
+  background: var(--background-modifier-success) !important;
+  border: 2px solid var(--color-accent) !important;
+}
+
+/* 表格编辑器容器样式 */
+.table-control-panel {
+  margin-bottom: 15px;
+  padding: 10px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.table-editor {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 500px;
+}
+
+.html-table-preview {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.html-table-preview td,
+.html-table-preview th {
+  border: 1px solid var(--background-modifier-border);
+  padding: 4px 8px;
+  position: relative;
+}
+
+.html-table-preview th {
+  background: var(--background-secondary);
+  font-weight: bold;
+}
+
+.html-table-preview input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: inherit;
+  padding: 2px;
+}
+
+.html-table-preview input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
 .table-context-menu {
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   padding: 6px 0;
-  min-width: 200px;
-  max-width: 300px;
+  min-width: 180px;
+  max-width: 250px;
+  max-height: 400px;
+  overflow-y: auto;
   z-index: 1000;
   font-size: 13px;
+  /* 防止子菜单被裁剪 */
+  overflow: visible;
 }
 
 .table-context-menu .menu-item {
-  padding: 10px 16px;
+  padding: 8px 12px;
   cursor: pointer;
   color: var(--text-normal);
   transition: background-color 0.1s ease;
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+  /* 确保子菜单容器不被裁剪 */
+  overflow: visible;
 }
 
 .table-context-menu .menu-item:hover:not(.disabled) {
@@ -160,10 +306,88 @@
   flex-shrink: 0;
 }
 
+/* 子菜单样式修复 */
+.submenu-item {
+  justify-content: space-between;
+  position: relative;
+}
+
+.submenu-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.submenu-item:hover .submenu-arrow {
+  transform: rotate(90deg);
+}
+
+.table-submenu {
+  position: absolute;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  min-width: 160px;
+  max-width: 220px;
+  z-index: 1001;
+  font-size: 12px;
+  /* 修复显示问题 */
+  white-space: nowrap;
+  /* 添加动画效果 */
+  opacity: 0;
+  transform: translateX(-5px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+.table-submenu[style*="block"] {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.table-submenu .menu-item {
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.table-submenu .menu-icon {
+  font-size: 12px;
+  width: 14px;
+}
+
 .table-context-menu hr {
-  margin: 6px 0;
+  margin: 4px 0;
   border: none;
   border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 滚动条样式 - 仅应用于主菜单 */
+.table-context-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.table-context-menu::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 3px;
+}
+
+.table-context-menu::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 3px;
+}
+
+.table-context-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* 子菜单不显示滚动条 */
+.table-submenu::-webkit-scrollbar {
+  display: none;
 }
 
 /* 菜单动画 */
