@@ -24,6 +24,8 @@ export enum SortDirection {
 export interface TableSettings {
   defaultTableRows: number;
   defaultTableCols: number;
+  enableTemplates?: boolean;
+  customTemplates?: TableTemplate[];
 }
 
 export interface MenuItemConfig {
@@ -33,4 +35,24 @@ export interface MenuItemConfig {
   className?: string;
   disabled?: boolean;
   submenu?: MenuItemConfig[];
+}
+
+// 新增模板相关类型
+export interface TableTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  data: CellData[][];
+  hasHeader: boolean;
+  preview?: string;
+  isCustom?: boolean;
+  createdAt?: Date;
+}
+
+export interface TemplateCategory {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
 }

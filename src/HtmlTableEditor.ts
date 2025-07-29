@@ -1,3 +1,6 @@
+import { TableTemplates, TableTemplate } from './features/TableTemplates';
+import { TemplateSelector } from './ui/TemplateSelector';
+
 interface CellData {
   content: string;
   colspan: number;
@@ -32,11 +35,18 @@ export class HtmlTableEditor {
   private contextMenu: HTMLElement | null = null;
   private isSelecting: boolean = false;
   private clipboardData: CellData[][] | null = null;
+  private templateSelector: TemplateSelector | null = null;
+  private activeSubmenus: HTMLElement[] = [];
 
   constructor(container: HTMLElement, settings: any, existingTable?: string) {
     this.container = container;
     this.settings = settings;
     this.hasHeader = true;
+
+    // 初始化模板选择器
+    this.templateSelector = new TemplateSelector(this.container, (template) => {
+      this.loadTemplate(template);
+    });
 
     if (existingTable) {
       this.parseExistingTable(existingTable);
@@ -238,73 +248,151 @@ export class HtmlTableEditor {
   private createControlPanel() {
     const controlPanel = this.container.createDiv({ cls: 'table-control-panel' });
     
-    // 基础操作按钮
-    const basicOpsDiv = controlPanel.createDiv({ cls: 'control-group' });
-    basicOpsDiv.createEl('span', { text: '基础操作:', cls: 'control-label' });
+    // 添加标题
+    const title = controlPanel.createEl('h3', { 
+      text: '🛠️ 表格编辑器',
+      cls: 'control-panel-title'
+    });
+    title.style.cssText = `
+      margin: 0 0 20px 0;
+      color: var(--text-normal);
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
     
-    const addRowBtn = basicOpsDiv.createEl('button', { text: '添加行' });
+    // 模板操作组
+    const templateOpsDiv = controlPanel.createDiv({ cls: 'control-group template-group' });
+    const templateLabel = templateOpsDiv.createEl('span', { 
+      text: '📋 模板操作', 
+      cls: 'control-label' 
+    });
+    
+    const selectTemplateBtn = templateOpsDiv.createEl('button', { 
+      text: '✨ 选择模板', 
+      cls: 'template-btn primary-btn' 
+    });
+    selectTemplateBtn.addEventListener('click', () => this.showTemplateSelector());
+
+    const saveTemplateBtn = templateOpsDiv.createEl('button', { 
+      text: '💾 保存模板', 
+      cls: 'template-btn secondary-btn' 
+    });
+    saveTemplateBtn.addEventListener('click', () => this.showSaveTemplateDialog());
+    
+    // 新增：模板管理按钮
+    const manageTemplateBtn = templateOpsDiv.createEl('button', { 
+      text: '管理模板', 
+      cls: 'template-btn secondary-btn' 
+    });
+    manageTemplateBtn.addEventListener('click', () => this.showTemplateManager());
+    
+    // 基础操作组
+    const basicOpsDiv = controlPanel.createDiv({ cls: 'control-group' });
+    basicOpsDiv.createEl('span', { text: '⚡ 基础操作', cls: 'control-label' });
+    
+    const addRowBtn = basicOpsDiv.createEl('button', { text: '➕ 添加行' });
     addRowBtn.addEventListener('click', () => this.addRow());
 
-    const addColBtn = basicOpsDiv.createEl('button', { text: '添加列' });
+    const addColBtn = basicOpsDiv.createEl('button', { text: '➕ 添加列' });
     addColBtn.addEventListener('click', () => this.addColumn());
 
-    const delRowBtn = basicOpsDiv.createEl('button', { text: '删除行' });
+    const delRowBtn = basicOpsDiv.createEl('button', { text: '🗑️ 删除行' });
     delRowBtn.addEventListener('click', () => this.deleteSelectedRows());
 
-    const delColBtn = basicOpsDiv.createEl('button', { text: '删除列' });
+    const delColBtn = basicOpsDiv.createEl('button', { text: '🗑️ 删除列' });
     delColBtn.addEventListener('click', () => this.deleteSelectedColumns());
 
-    // 插入操作按钮
+    // 插入操作组
     const insertOpsDiv = controlPanel.createDiv({ cls: 'control-group' });
-    insertOpsDiv.createEl('span', { text: '插入操作:', cls: 'control-label' });
+    insertOpsDiv.createEl('span', { text: '📍 插入操作', cls: 'control-label' });
     
-    const insertRowAboveBtn = insertOpsDiv.createEl('button', { text: '上方插入行' });
+    const insertRowAboveBtn = insertOpsDiv.createEl('button', { text: '⬆️ 上方插入行' });
     insertRowAboveBtn.addEventListener('click', () => this.insertRowAbove());
 
-    const insertRowBelowBtn = insertOpsDiv.createEl('button', { text: '下方插入行' });
+    const insertRowBelowBtn = insertOpsDiv.createEl('button', { text: '⬇️ 下方插入行' });
     insertRowBelowBtn.addEventListener('click', () => this.insertRowBelow());
 
-    const insertColLeftBtn = insertOpsDiv.createEl('button', { text: '左侧插入列' });
+    const insertColLeftBtn = insertOpsDiv.createEl('button', { text: '⬅️ 左侧插入列' });
     insertColLeftBtn.addEventListener('click', () => this.insertColumnLeft());
 
-    const insertColRightBtn = insertOpsDiv.createEl('button', { text: '右侧插入列' });
+    const insertColRightBtn = insertOpsDiv.createEl('button', { text: '➡️ 右侧插入列' });
     insertColRightBtn.addEventListener('click', () => this.insertColumnRight());
 
-    // 合并操作按钮
+    // 合并操作组
     const mergeOpsDiv = controlPanel.createDiv({ cls: 'control-group' });
-    mergeOpsDiv.createEl('span', { text: '合并操作:', cls: 'control-label' });
+    mergeOpsDiv.createEl('span', { text: '🔗 合并操作', cls: 'control-label' });
     
-    const mergeCellsBtn = mergeOpsDiv.createEl('button', { text: '合并单元格' });
+    const mergeCellsBtn = mergeOpsDiv.createEl('button', { text: '🔗 合并单元格' });
     mergeCellsBtn.addEventListener('click', () => this.mergeCells());
 
-    const splitCellBtn = mergeOpsDiv.createEl('button', { text: '拆分单元格' });
+    const splitCellBtn = mergeOpsDiv.createEl('button', { text: '✂️ 拆分单元格' });
     splitCellBtn.addEventListener('click', () => this.splitCells());
 
-    const clearSelectionBtn = mergeOpsDiv.createEl('button', { text: '清除选择' });
+    const clearSelectionBtn = mergeOpsDiv.createEl('button', { text: '🧹 清除选择' });
     clearSelectionBtn.addEventListener('click', () => this.clearSelection());
 
-    // 新增：排序操作按钮
+    // 排序操作组
     const sortOpsDiv = controlPanel.createDiv({ cls: 'control-group' });
-    sortOpsDiv.createEl('span', { text: '排序操作:', cls: 'control-label' });
+    sortOpsDiv.createEl('span', { text: '🔄 排序操作', cls: 'control-label' });
     
-    const sortAscBtn = sortOpsDiv.createEl('button', { text: '升序排序' });
+    const sortAscBtn = sortOpsDiv.createEl('button', { text: '📈 升序排序' });
     sortAscBtn.addEventListener('click', () => this.showSortDialog(SortDirection.ASC));
 
-    const sortDescBtn = sortOpsDiv.createEl('button', { text: '降序排序' });
+    const sortDescBtn = sortOpsDiv.createEl('button', { text: '📉 降序排序' });
     sortDescBtn.addEventListener('click', () => this.showSortDialog(SortDirection.DESC));
 
-    const resetSortBtn = sortOpsDiv.createEl('button', { text: '重置排序' });
+    const resetSortBtn = sortOpsDiv.createEl('button', { text: '🔄 重置排序' });
     resetSortBtn.addEventListener('click', () => this.resetSort());
 
     // 表头切换
     const headerDiv = controlPanel.createDiv({ cls: 'control-group' });
+    headerDiv.createEl('span', { text: '🏷️ 表头设置', cls: 'control-label' });
+    
     const headerToggle = headerDiv.createEl('label');
-    headerToggle.createSpan({ text: '包含表头: ' });
+    headerToggle.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 8px 12px;
+      background: var(--background-primary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: var(--ob-htables-radius-sm);
+      transition: var(--ob-htables-transition-fast);
+    `;
+    
     const headerCheckbox = headerToggle.createEl('input', { type: 'checkbox' });
     headerCheckbox.checked = this.hasHeader;
+    headerCheckbox.style.cssText = `
+      width: 18px;
+      height: 18px;
+      accent-color: var(--ob-htables-primary);
+    `;
+    
+    headerToggle.createSpan({ text: '包含表头' });
+    
     headerCheckbox.addEventListener('change', (e) => {
       this.hasHeader = (e.target as HTMLInputElement).checked;
       this.updateTableEditor();
+      
+      // 添加反馈动画
+      headerToggle.style.animation = 'ob-htables-bounce 0.6s ease';
+      setTimeout(() => {
+        headerToggle.style.animation = '';
+      }, 600);
+    });
+    
+    headerToggle.addEventListener('mouseenter', () => {
+      headerToggle.style.borderColor = 'var(--ob-htables-primary)';
+      headerToggle.style.transform = 'translateY(-1px)';
+    });
+    
+    headerToggle.addEventListener('mouseleave', () => {
+      headerToggle.style.borderColor = 'var(--background-modifier-border)';
+      headerToggle.style.transform = 'translateY(0)';
     });
   }
 
@@ -594,15 +682,23 @@ export class HtmlTableEditor {
         // 添加箭头指示器
         const arrow = menuItem.createSpan({ text: '▶', cls: 'submenu-arrow' });
         
-        // 子菜单容器
+        // 子菜单容器 - 关键修改：直接添加到 document.body
         const submenu = document.createElement('div');
         submenu.className = 'table-submenu';
+        submenu.style.position = 'fixed';
         submenu.style.display = 'none';
+        submenu.style.zIndex = '1002'; // 比父菜单更高的层级
         
         this.createMenuItems(submenu, item.submenu, event);
         
-        // 将子菜单添加到父菜单项中
-        menuItem.appendChild(submenu);
+        // 将子菜单添加到 document.body 而不是父菜单项
+        document.body.appendChild(submenu);
+        
+        // 存储子菜单引用以便后续清理
+        if (!this.activeSubmenus) {
+          this.activeSubmenus = [];
+        }
+        this.activeSubmenus.push(submenu);
         
         // 修复的鼠标事件处理
         let showTimeout: NodeJS.Timeout;
@@ -610,25 +706,34 @@ export class HtmlTableEditor {
         
         const showSubmenu = () => {
           clearTimeout(hideTimeout);
-          clearTimeout(showTimeout);
-          
-          // 隐藏其他子菜单
-          container.querySelectorAll('.table-submenu').forEach(sub => {
-            if (sub !== submenu) {
-              (sub as HTMLElement).style.display = 'none';
-            }
-          });
-          
-          submenu.style.display = 'block';
-          this.adjustSubmenuPosition(submenu, menuItem);
+          showTimeout = setTimeout(() => {
+            // 隐藏其他子菜单
+            this.hideAllSubmenus();
+            
+            // 显示当前子菜单
+            submenu.style.display = 'block';
+            this.adjustSubmenuPosition(submenu, menuItem);
+            
+            // 添加淡入动画
+            submenu.style.opacity = '0';
+            submenu.style.transform = 'translateX(-8px) scale(0.95)';
+            requestAnimationFrame(() => {
+              submenu.style.transition = 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+              submenu.style.opacity = '1';
+              submenu.style.transform = 'translateX(0) scale(1)';
+            });
+          }, 150);
         };
         
         const hideSubmenu = () => {
           clearTimeout(showTimeout);
-          clearTimeout(hideTimeout);
           hideTimeout = setTimeout(() => {
-            submenu.style.display = 'none';
-          }, 150);
+            submenu.style.opacity = '0';
+            submenu.style.transform = 'translateX(-8px) scale(0.95)';
+            setTimeout(() => {
+              submenu.style.display = 'none';
+            }, 200);
+          }, 300);
         };
         
         const keepSubmenu = () => {
@@ -697,44 +802,47 @@ export class HtmlTableEditor {
     }
   }
 
-  // 修复：调整子菜单位置的方法
+  // 新增：隐藏所有子菜单的方法
+  private hideAllSubmenus() {
+    if (this.activeSubmenus) {
+      this.activeSubmenus.forEach(submenu => {
+        submenu.style.display = 'none';
+      });
+    }
+  }
+
+  // 改进的子菜单定位方法
   private adjustSubmenuPosition(submenu: HTMLElement, parentItem: HTMLElement) {
     const parentRect = parentItem.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     
-    // 重置位置
-    submenu.style.left = '';
-    submenu.style.right = '';
-    submenu.style.top = '';
-    submenu.style.bottom = '';
-    
     // 默认在右侧显示
-    submenu.style.left = '100%';
-    submenu.style.top = '0px';
+    let left = parentRect.right + 5;
+    let top = parentRect.top;
     
     // 强制重新计算布局
+    submenu.style.left = left + 'px';
+    submenu.style.top = top + 'px';
     submenu.offsetHeight;
     
     const submenuRect = submenu.getBoundingClientRect();
     
-    // 检查是否超出右边界
+    // 检查是否超出右边界，如果是则在左侧显示
     if (submenuRect.right > viewportWidth - 10) {
-      // 在左侧显示
-      submenu.style.left = '';
-      submenu.style.right = '100%';
+      left = parentRect.left - submenuRect.width - 5;
+      submenu.style.left = Math.max(5, left) + 'px';
     }
     
     // 检查是否超出下边界
     if (submenuRect.bottom > viewportHeight - 10) {
-      const offset = Math.min(0, viewportHeight - submenuRect.bottom - 20);
-      submenu.style.top = offset + 'px';
+      top = Math.max(10, viewportHeight - submenuRect.height - 10);
+      submenu.style.top = top + 'px';
     }
     
     // 检查是否超出上边界
-    const finalRect = submenu.getBoundingClientRect();
-    if (finalRect.top < 10) {
-      submenu.style.top = (10 - parentRect.top) + 'px';
+    if (top < 10) {
+      submenu.style.top = '10px';
     }
   }
 
@@ -742,6 +850,14 @@ export class HtmlTableEditor {
     if (this.contextMenu) {
       this.contextMenu.remove();
       this.contextMenu = null;
+    }
+    
+    // 清理所有子菜单
+    if (this.activeSubmenus) {
+      this.activeSubmenus.forEach(submenu => {
+        submenu.remove();
+      });
+      this.activeSubmenus = [];
     }
   }
 
@@ -1388,5 +1504,324 @@ export class HtmlTableEditor {
     // 这里可以实现更复杂的原始顺序恢复逻辑
     // 目前简单地提示用户
     alert('排序重置功能需要在编辑过程中记录原始顺序。当前版本暂不支持，请使用撤销功能或重新加载表格。');
+  }
+
+  // 新增方法：显示模板选择器
+  private showTemplateSelector(): void {
+    if (this.templateSelector) {
+      this.templateSelector.show();
+    }
+  }
+
+  // 新增方法：加载模板
+  private loadTemplate(template: TableTemplate): void {
+    // 清除当前选择
+    this.clearSelection();
+    
+    // 加载模板数据
+    this.tableData = JSON.parse(JSON.stringify(template.data)); // 深拷贝
+    this.hasHeader = template.hasHeader;
+    
+    // 重新渲染表格
+    this.updateTableEditor();
+  }
+
+  // 新增方法：显示保存模板对话框
+  private showSaveTemplateDialog(): void {
+    const modal = document.createElement('div');
+    modal.className = 'save-template-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    `;
+
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+      background: var(--background-primary);
+      border-radius: 8px;
+      padding: 20px;
+      min-width: 400px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    `;
+
+    const title = document.createElement('h3');
+    title.textContent = '保存为模板';
+    title.style.marginBottom = '15px';
+    modalContent.appendChild(title);
+
+    // 模板名称输入
+    const nameLabel = document.createElement('label');
+    nameLabel.textContent = '模板名称:';
+    nameLabel.style.display = 'block';
+    nameLabel.style.marginBottom = '5px';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = '请输入模板名称';
+    nameInput.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid var(--background-modifier-border); border-radius: 4px;';
+
+    // 模板描述输入
+    const descLabel = document.createElement('label');
+    descLabel.textContent = '模板描述:';
+    descLabel.style.display = 'block';
+    descLabel.style.marginBottom = '5px';
+    const descInput = document.createElement('textarea');
+    descInput.placeholder = '请输入模板描述';
+    descInput.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid var(--background-modifier-border); border-radius: 4px; height: 60px; resize: vertical;';
+
+    // 分类选择
+    const categoryLabel = document.createElement('label');
+    categoryLabel.textContent = '分类:';
+    categoryLabel.style.display = 'block';
+    categoryLabel.style.marginBottom = '5px';
+    const categorySelect = document.createElement('select');
+    categorySelect.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid var(--background-modifier-border); border-radius: 4px;';
+    
+    const categories = ['基础', '商务', '学术', '个人', '自定义'];
+    categories.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+    categorySelect.value = '自定义';
+
+    // 按钮容器
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.cssText = 'padding: 8px 16px; border: 1px solid var(--background-modifier-border); background: transparent; border-radius: 4px; cursor: pointer;';
+    cancelBtn.addEventListener('click', () => modal.remove());
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = '保存';
+    saveBtn.style.cssText = 'padding: 8px 16px; border: none; background: var(--interactive-accent); color: white; border-radius: 4px; cursor: pointer;';
+    saveBtn.addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      const description = descInput.value.trim();
+      const category = categorySelect.value;
+      
+      if (!name) {
+        alert('请输入模板名称');
+        return;
+      }
+      
+      this.saveAsTemplate(name, description, category);
+      modal.remove();
+      alert('模板保存成功！');
+    });
+
+    modalContent.appendChild(nameLabel);
+    modalContent.appendChild(nameInput);
+    modalContent.appendChild(descLabel);
+    modalContent.appendChild(descInput);
+    modalContent.appendChild(categoryLabel);
+    modalContent.appendChild(categorySelect);
+    modalContent.appendChild(buttonContainer);
+    buttonContainer.appendChild(cancelBtn);
+    buttonContainer.appendChild(saveBtn);
+    modal.appendChild(modalContent);
+
+    // 点击背景关闭
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+
+    document.body.appendChild(modal);
+    nameInput.focus();
+  }
+
+  // 新增方法：保存为模板
+  private saveAsTemplate(name: string, description: string, category: string): void {
+    const template: TableTemplate = {
+      id: `custom-${Date.now()}`,
+      name,
+      description,
+      category,
+      data: JSON.parse(JSON.stringify(this.tableData)), // 深拷贝
+      hasHeader: this.hasHeader,
+      isCustom: true,
+      createdAt: new Date()
+    };
+    
+    TableTemplates.addCustomTemplate(template);
+  }
+
+  // 新增：模板管理器
+  private showTemplateManager(): void {
+    const modal = document.createElement('div');
+    modal.className = 'template-manager-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    `;
+
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+      background: var(--background-primary);
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    `;
+
+    const title = document.createElement('h2');
+    title.textContent = '模板管理';
+    title.style.marginBottom = '20px';
+    modalContent.appendChild(title);
+
+    // 导入导出按钮
+    const actionBar = document.createElement('div');
+    actionBar.style.cssText = 'display: flex; gap: 10px; margin-bottom: 20px;';
+    
+    const importBtn = document.createElement('button');
+    importBtn.textContent = '导入模板';
+    importBtn.style.cssText = 'padding: 8px 16px; border: 1px solid var(--interactive-accent); background: transparent; color: var(--interactive-accent); border-radius: 4px; cursor: pointer;';
+    
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = '导出自定义模板';
+    exportBtn.style.cssText = 'padding: 8px 16px; border: none; background: var(--interactive-accent); color: white; border-radius: 4px; cursor: pointer;';
+    
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = '清空自定义模板';
+    clearBtn.style.cssText = 'padding: 8px 16px; border: 1px solid var(--text-error); background: transparent; color: var(--text-error); border-radius: 4px; cursor: pointer;';
+    
+    actionBar.appendChild(importBtn);
+    actionBar.appendChild(exportBtn);
+    actionBar.appendChild(clearBtn);
+    modalContent.appendChild(actionBar);
+
+    // 自定义模板列表
+    const customTemplates = TableTemplates.getCustomTemplates();
+    
+    if (customTemplates.length === 0) {
+      const emptyState = document.createElement('div');
+      emptyState.textContent = '暂无自定义模板';
+      emptyState.style.cssText = 'text-align: center; padding: 40px; color: var(--text-muted); font-style: italic;';
+      modalContent.appendChild(emptyState);
+    } else {
+      const templateList = document.createElement('div');
+      templateList.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+      
+      customTemplates.forEach(template => {
+        const templateItem = document.createElement('div');
+        templateItem.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px;
+          border: 1px solid var(--background-modifier-border);
+          border-radius: 6px;
+          background: var(--background-secondary);
+        `;
+        
+        const info = document.createElement('div');
+        info.innerHTML = `
+          <div style="font-weight: 500; color: var(--text-normal);">${template.name}</div>
+          <div style="font-size: 12px; color: var(--text-muted);">${template.description}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+            ${template.category} • ${template.data.length}行×${template.data[0]?.length || 0}列
+          </div>
+        `;
+        
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display: flex; gap: 8px;';
+        
+        const useBtn = document.createElement('button');
+        useBtn.textContent = '使用';
+        useBtn.style.cssText = 'padding: 4px 8px; border: none; background: var(--interactive-accent); color: white; border-radius: 3px; cursor: pointer; font-size: 12px;';
+        useBtn.addEventListener('click', () => {
+          this.loadTemplate(template);
+          modal.remove();
+        });
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '删除';
+        deleteBtn.style.cssText = 'padding: 4px 8px; border: 1px solid var(--text-error); background: transparent; color: var(--text-error); border-radius: 3px; cursor: pointer; font-size: 12px;';
+        deleteBtn.addEventListener('click', () => {
+          if (confirm(`确定要删除模板 "${template.name}" 吗？`)) {
+            TableTemplates.removeTemplate(template.id);
+            modal.remove();
+            this.showTemplateManager(); // 重新打开管理器
+          }
+        });
+        
+        actions.appendChild(useBtn);
+        actions.appendChild(deleteBtn);
+        
+        templateItem.appendChild(info);
+        templateItem.appendChild(actions);
+        templateList.appendChild(templateItem);
+      });
+      
+      modalContent.appendChild(templateList);
+    }
+
+    // 事件处理
+    importBtn.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.addEventListener('change', async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const result = await TableTemplates.importTemplates(file);
+          alert(`导入完成！成功: ${result.success}个，失败: ${result.errors.length}个`);
+          if (result.errors.length > 0) {
+            console.warn('导入错误:', result.errors);
+          }
+          modal.remove();
+          this.showTemplateManager();
+        }
+      });
+      input.click();
+    });
+    
+    exportBtn.addEventListener('click', () => {
+      TableTemplates.exportTemplates();
+    });
+    
+    clearBtn.addEventListener('click', () => {
+      if (confirm('确定要清空所有自定义模板吗？此操作不可撤销！')) {
+        TableTemplates.clearCustomTemplates();
+        modal.remove();
+        this.showTemplateManager();
+      }
+    });
+
+    // 关闭按钮
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '关闭';
+    closeBtn.style.cssText = 'width: 100%; padding: 10px; margin-top: 20px; border: 1px solid var(--background-modifier-border); background: transparent; border-radius: 4px; cursor: pointer;';
+    closeBtn.addEventListener('click', () => modal.remove());
+    modalContent.appendChild(closeBtn);
+
+    modal.appendChild(modalContent);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    document.body.appendChild(modal);
   }
 }
